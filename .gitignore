@@ -1,0 +1,15 @@
+.swp
+.pyc
+.so
+.obj
+.png
+.log
+.sh
+.index
+.data-00000-of-00001
+.meta
+.tar.gz
+model
+mesh_points
+scratch
+uniform_rots
