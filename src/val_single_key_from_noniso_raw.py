@@ -22,7 +22,7 @@ import time
 import datetime
 import cv2
 
-from utils import *
+from utils import preprocess
 
 def compute_xy_one_angle(one_bin, one_delta):
   pivot = np.argmax(one_bin)
@@ -30,61 +30,61 @@ def compute_xy_one_angle(one_bin, one_delta):
   return (pivot + 0.5) * bin_size + one_delta[pivot] - 1.0
 
 def show2dLandmarks(image, proj2d):
-	for idx in range(18):
-		cv2.circle(image, (int(proj2d[0][idx]), int(proj2d[1][idx])), 4, (0,0,255), -1)
+  for idx in range(18):
+    cv2.circle(image, (int(proj2d[0][idx]), int(proj2d[1][idx])), 4, (0,0,255), -1)
 
-	for idx in range(18, 36):
-		cv2.circle(image, (int(proj2d[0][idx]), int(proj2d[1][idx])), 4, (0,255,0), -1)
+  for idx in range(18, 36):
+    cv2.circle(image, (int(proj2d[0][idx]), int(proj2d[1][idx])), 4, (0,255,0), -1)
 
-	for idx in range(15):
-		cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+1]),int(proj2d[1][idx+1])), (255,0,0), 2)
-		cv2.line(image, (int(proj2d[0][15]),int(proj2d[1][15])),(int(proj2d[0][0]),int(proj2d[1][0])), (255,0,0), 2)
+  for idx in range(15):
+    cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+1]),int(proj2d[1][idx+1])), (255,0,0), 2)
+    cv2.line(image, (int(proj2d[0][15]),int(proj2d[1][15])),(int(proj2d[0][0]),int(proj2d[1][0])), (255,0,0), 2)
 
-	for idx in range(18, 33):
-		cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+1]),int(proj2d[1][idx+1])), (255,0,0), 2)
-		cv2.line(image, (int(proj2d[0][33]),int(proj2d[1][33])),(int(proj2d[0][18]),int(proj2d[1][18])), (255,0,0), 2)
+  for idx in range(18, 33):
+    cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+1]),int(proj2d[1][idx+1])), (255,0,0), 2)
+    cv2.line(image, (int(proj2d[0][33]),int(proj2d[1][33])),(int(proj2d[0][18]),int(proj2d[1][18])), (255,0,0), 2)
 
-	for idx in range(8):
-		cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+18]),int(proj2d[1][idx+18])), (255,0,0), 2)
+  for idx in range(8):
+    cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+18]),int(proj2d[1][idx+18])), (255,0,0), 2)
 
-	x18 = [2*proj2d[0][16]-proj2d[0][13], 2*proj2d[1][16]-proj2d[1][13]]
-	x19 = [2*proj2d[0][16]-proj2d[0][14], 2*proj2d[1][16]-proj2d[1][14]]
-	x20 = [2*proj2d[0][17]-proj2d[0][9],  2*proj2d[1][17]-proj2d[1][9]]
-	x21 = [2*proj2d[0][17]-proj2d[0][10], 2*proj2d[1][17]-proj2d[1][10]]
-	cv2.line(image, (int(proj2d[0][15]),int(proj2d[1][15])),(int(x18[0]),int(x18[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][12]),int(proj2d[1][12])),(int(x19[0]),int(x19[1])), (255,0,0), 2)
-	cv2.line(image, (int(x19[0]),int(x19[1])),              (int(x18[0]),int(x18[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][11]),int(proj2d[1][11])),(int(x20[0]),int(x20[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][8]),int(proj2d[1][8])),  (int(x21[0]),int(x21[1])), (255,0,0), 2)
-	cv2.line(image, (int(x20[0]),int(x20[1])),              (int(x21[0]),int(x21[1])), (255,0,0), 2)
+  x18 = [2*proj2d[0][16]-proj2d[0][13], 2*proj2d[1][16]-proj2d[1][13]]
+  x19 = [2*proj2d[0][16]-proj2d[0][14], 2*proj2d[1][16]-proj2d[1][14]]
+  x20 = [2*proj2d[0][17]-proj2d[0][9],  2*proj2d[1][17]-proj2d[1][9]]
+  x21 = [2*proj2d[0][17]-proj2d[0][10], 2*proj2d[1][17]-proj2d[1][10]]
+  cv2.line(image, (int(proj2d[0][15]),int(proj2d[1][15])),(int(x18[0]),int(x18[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][12]),int(proj2d[1][12])),(int(x19[0]),int(x19[1])), (255,0,0), 2)
+  cv2.line(image, (int(x19[0]),int(x19[1])),              (int(x18[0]),int(x18[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][11]),int(proj2d[1][11])),(int(x20[0]),int(x20[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][8]),int(proj2d[1][8])),  (int(x21[0]),int(x21[1])), (255,0,0), 2)
+  cv2.line(image, (int(x20[0]),int(x20[1])),              (int(x21[0]),int(x21[1])), (255,0,0), 2)
 
-	x22 = [2*proj2d[0][16+18]-proj2d[0][13+18], 2*proj2d[1][16+18]-proj2d[1][13+18]]
-	x23 = [2*proj2d[0][16+18]-proj2d[0][14+18], 2*proj2d[1][16+18]-proj2d[1][14+18]]
-	x24 = [2*proj2d[0][17+18]-proj2d[0][9+18],  2*proj2d[1][17+18]-proj2d[1][9+18]]
-	x25 = [2*proj2d[0][17+18]-proj2d[0][10+18], 2*proj2d[1][17+18]-proj2d[1][10+18]]
-	cv2.line(image, (int(proj2d[0][15+18]),int(proj2d[1][15+18])), (int(x22[0]),int(x22[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][12+18]),int(proj2d[1][12+18])), (int(x23[0]),int(x23[1])), (255,0,0), 2)
-	cv2.line(image, (int(x22[0]),int(x22[1])),                     (int(x23[0]),int(x23[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][11+18]),int(proj2d[1][11+18])), (int(x24[0]),int(x24[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][8+18]),int(proj2d[1][8+18])),   (int(x25[0]),int(x25[1])), (255,0,0), 2)
-	cv2.line(image, (int(x24[0]),int(x24[1])),                     (int(x25[0]),int(x25[1])), (255,0,0), 2)
+  x22 = [2*proj2d[0][16+18]-proj2d[0][13+18], 2*proj2d[1][16+18]-proj2d[1][13+18]]
+  x23 = [2*proj2d[0][16+18]-proj2d[0][14+18], 2*proj2d[1][16+18]-proj2d[1][14+18]]
+  x24 = [2*proj2d[0][17+18]-proj2d[0][9+18],  2*proj2d[1][17+18]-proj2d[1][9+18]]
+  x25 = [2*proj2d[0][17+18]-proj2d[0][10+18], 2*proj2d[1][17+18]-proj2d[1][10+18]]
+  cv2.line(image, (int(proj2d[0][15+18]),int(proj2d[1][15+18])), (int(x22[0]),int(x22[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][12+18]),int(proj2d[1][12+18])), (int(x23[0]),int(x23[1])), (255,0,0), 2)
+  cv2.line(image, (int(x22[0]),int(x22[1])),                     (int(x23[0]),int(x23[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][11+18]),int(proj2d[1][11+18])), (int(x24[0]),int(x24[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][8+18]),int(proj2d[1][8+18])),   (int(x25[0]),int(x25[1])), (255,0,0), 2)
+  cv2.line(image, (int(x24[0]),int(x24[1])),                     (int(x25[0]),int(x25[1])), (255,0,0), 2)
 
 def read_single_image(fqueue, dim):
-	reader = tf.TFRecordReader()
-	key, value = reader.read(fqueue)
-	basics = tf.parse_single_example(value, features={
-		'idx': tf.FixedLenFeature([], tf.int64),
-		'vimg': tf.FixedLenFeature([], tf.string)})
+  reader = tf.TFRecordReader()
+  key, value = reader.read(fqueue)
+  basics = tf.parse_single_example(value, features={
+    'idx': tf.FixedLenFeature([], tf.int64),
+    'vimg': tf.FixedLenFeature([], tf.string)})
 
-	image = basics['vimg']
+  image = basics['vimg']
 
-	image = tf.decode_raw(image, tf.uint8)
-	image.set_shape([3 * dim * dim])
-	image = tf.reshape(image, [dim, dim, 3])
+  image = tf.decode_raw(image, tf.uint8)
+  image.set_shape([3 * dim * dim])
+  image = tf.reshape(image, [dim, dim, 3])
 
-	idx = tf.cast(basics['idx'], tf.int64)
+  idx = tf.cast(basics['idx'], tf.int64)
 
-	return image, idx
+  return image, idx
 
 def create_bb_pip(tfr, nepoch, sbatch, mean, shuffle=True):
 
@@ -239,7 +239,7 @@ def gen_tfrecords(input_dir, out_filename):
   for ix in xrange(N):
     if ix % batch_N == 0:
       print('[%s]: %d/%d' % (datetime.datetime.now(), ix, N))
-      batch_data = [(png_list[k + ix], k + ix) \
+      batch_data = [(png_list[k + ix], k + ix) 
           for k in range(min(batch_N, N - ix))]
       
       #batch_datums = p.map(process_noniso_img, batch_data)
@@ -261,42 +261,41 @@ def gen_tfrecords(input_dir, out_filename):
   return png_list
   
 def main(FLAGS):
-	assert tf.gfile.Exists(FLAGS.input)
-	model_dir = osp.join(FLAGS.model_dir, 'log', 'model')
-	assert tf.gfile.Exists(FLAGS.model_dir)
-	
-	mean = [128, 128, 128] 
+  assert tf.gfile.Exists(FLAGS.input)
+  model_dir = osp.join(FLAGS.model_dir, 'log', 'model')
+  assert tf.gfile.Exists(FLAGS.model_dir)
+  
+  mean = [128, 128, 128] 
 
-	out_filename = '/tmp/val_raw.tfrecords'
-	png_list = gen_tfrecords(FLAGS.input, out_filename)
+  out_filename = '/tmp/val_raw.tfrecords'
+  png_list = gen_tfrecords(FLAGS.input, out_filename)
 
-	if tf.gfile.Exists(FLAGS.out_dir) == False:
-		tf.gfile.MakeDirs(FLAGS.out_dir)
+  if tf.gfile.Exists(FLAGS.out_dir) is False:
+    tf.gfile.MakeDirs(FLAGS.out_dir)
 
-	evaluate(out_filename, model_dir, mean, FLAGS.out_dir, png_list)
+  evaluate(out_filename, model_dir, mean, FLAGS.out_dir, png_list)
 
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser()
-	parser.add_argument(
-			'--out_dir',
-			type=str,
-			default='diva_samples',
-			help='Directory of output training and log files'
-	)
-	parser.add_argument(
-			'--model_dir',
-			type=str,
-			default='.',
-			help='Directory of output training and log files'
-	)
-	parser.add_argument(
-			'--input',
-			type=str,
-			default='/home/chi/syn_dataset/diva/samples',
-			help='Directory of input directory'
-	)
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--out_dir',
+      type=str,
+      default='diva_samples',
+      help='Directory of output training and log files'
+  )
+  parser.add_argument(
+      '--model_dir',
+      type=str,
+      default='/home/chi/mv-vk/model/diva/L2_noniso_car_23d',
+      help='Directory of output training and log files'
+  )
+  parser.add_argument(
+      '--input',
+      type=str,
+      default='/home/chi/syn_dataset/diva/samples',
+      help='Directory of input directory'
+  )
 
-	FLAGS, unparsed = parser.parse_known_args()
-	main(FLAGS)
-
+  FLAGS, unparsed = parser.parse_known_args()
+  main(FLAGS)

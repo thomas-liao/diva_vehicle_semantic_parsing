@@ -22,7 +22,7 @@ import time
 import datetime
 import cv2
 
-from utils import *
+from utils import preprocess
 
 def compute_xy_one_angle(one_bin, one_delta):
   pivot = np.argmax(one_bin)
@@ -30,63 +30,63 @@ def compute_xy_one_angle(one_bin, one_delta):
   return (pivot + 0.5) * bin_size + one_delta[pivot] - 1.0
 
 def show2dLandmarks(image, proj2d):
-	for idx in range(18):
-		cv2.circle(image, (int(proj2d[0][idx]), int(proj2d[1][idx])), 4, (0,0,255), -1)
+  for idx in range(18):
+    cv2.circle(image, (int(proj2d[0][idx]), int(proj2d[1][idx])), 4, (0,0,255), -1)
 
-	for idx in range(18, 36):
-		cv2.circle(image, (int(proj2d[0][idx]), int(proj2d[1][idx])), 4, (0,255,0), -1)
+  for idx in range(18, 36):
+    cv2.circle(image, (int(proj2d[0][idx]), int(proj2d[1][idx])), 4, (0,255,0), -1)
 
-	for idx in range(15):
-		cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+1]),int(proj2d[1][idx+1])), (255,0,0), 2)
-		cv2.line(image, (int(proj2d[0][15]),int(proj2d[1][15])),(int(proj2d[0][0]),int(proj2d[1][0])), (255,0,0), 2)
+  for idx in range(15):
+    cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+1]),int(proj2d[1][idx+1])), (255,0,0), 2)
+    cv2.line(image, (int(proj2d[0][15]),int(proj2d[1][15])),(int(proj2d[0][0]),int(proj2d[1][0])), (255,0,0), 2)
 
-	for idx in range(18, 33):
-		cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+1]),int(proj2d[1][idx+1])), (255,0,0), 2)
-		cv2.line(image, (int(proj2d[0][33]),int(proj2d[1][33])),(int(proj2d[0][18]),int(proj2d[1][18])), (255,0,0), 2)
+  for idx in range(18, 33):
+    cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+1]),int(proj2d[1][idx+1])), (255,0,0), 2)
+    cv2.line(image, (int(proj2d[0][33]),int(proj2d[1][33])),(int(proj2d[0][18]),int(proj2d[1][18])), (255,0,0), 2)
 
-	for idx in range(8):
-		cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+18]),int(proj2d[1][idx+18])), (255,0,0), 2)
+  for idx in range(8):
+    cv2.line(image, (int(proj2d[0][idx]),int(proj2d[1][idx])),(int(proj2d[0][idx+18]),int(proj2d[1][idx+18])), (255,0,0), 2)
 
-	x18 = [2*proj2d[0][16]-proj2d[0][13], 2*proj2d[1][16]-proj2d[1][13]]
-	x19 = [2*proj2d[0][16]-proj2d[0][14], 2*proj2d[1][16]-proj2d[1][14]]
-	x20 = [2*proj2d[0][17]-proj2d[0][9],  2*proj2d[1][17]-proj2d[1][9]]
-	x21 = [2*proj2d[0][17]-proj2d[0][10], 2*proj2d[1][17]-proj2d[1][10]]
-	cv2.line(image, (int(proj2d[0][15]),int(proj2d[1][15])),(int(x18[0]),int(x18[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][12]),int(proj2d[1][12])),(int(x19[0]),int(x19[1])), (255,0,0), 2)
-	cv2.line(image, (int(x19[0]),int(x19[1])),              (int(x18[0]),int(x18[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][11]),int(proj2d[1][11])),(int(x20[0]),int(x20[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][8]),int(proj2d[1][8])),  (int(x21[0]),int(x21[1])), (255,0,0), 2)
-	cv2.line(image, (int(x20[0]),int(x20[1])),              (int(x21[0]),int(x21[1])), (255,0,0), 2)
+  x18 = [2*proj2d[0][16]-proj2d[0][13], 2*proj2d[1][16]-proj2d[1][13]]
+  x19 = [2*proj2d[0][16]-proj2d[0][14], 2*proj2d[1][16]-proj2d[1][14]]
+  x20 = [2*proj2d[0][17]-proj2d[0][9],  2*proj2d[1][17]-proj2d[1][9]]
+  x21 = [2*proj2d[0][17]-proj2d[0][10], 2*proj2d[1][17]-proj2d[1][10]]
+  cv2.line(image, (int(proj2d[0][15]),int(proj2d[1][15])),(int(x18[0]),int(x18[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][12]),int(proj2d[1][12])),(int(x19[0]),int(x19[1])), (255,0,0), 2)
+  cv2.line(image, (int(x19[0]),int(x19[1])),              (int(x18[0]),int(x18[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][11]),int(proj2d[1][11])),(int(x20[0]),int(x20[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][8]),int(proj2d[1][8])),  (int(x21[0]),int(x21[1])), (255,0,0), 2)
+  cv2.line(image, (int(x20[0]),int(x20[1])),              (int(x21[0]),int(x21[1])), (255,0,0), 2)
 
-	x22 = [2*proj2d[0][16+18]-proj2d[0][13+18], 2*proj2d[1][16+18]-proj2d[1][13+18]]
-	x23 = [2*proj2d[0][16+18]-proj2d[0][14+18], 2*proj2d[1][16+18]-proj2d[1][14+18]]
-	x24 = [2*proj2d[0][17+18]-proj2d[0][9+18],  2*proj2d[1][17+18]-proj2d[1][9+18]]
-	x25 = [2*proj2d[0][17+18]-proj2d[0][10+18], 2*proj2d[1][17+18]-proj2d[1][10+18]]
-	cv2.line(image, (int(proj2d[0][15+18]),int(proj2d[1][15+18])), (int(x22[0]),int(x22[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][12+18]),int(proj2d[1][12+18])), (int(x23[0]),int(x23[1])), (255,0,0), 2)
-	cv2.line(image, (int(x22[0]),int(x22[1])),                     (int(x23[0]),int(x23[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][11+18]),int(proj2d[1][11+18])), (int(x24[0]),int(x24[1])), (255,0,0), 2)
-	cv2.line(image, (int(proj2d[0][8+18]),int(proj2d[1][8+18])),   (int(x25[0]),int(x25[1])), (255,0,0), 2)
-	cv2.line(image, (int(x24[0]),int(x24[1])),                     (int(x25[0]),int(x25[1])), (255,0,0), 2)
+  x22 = [2*proj2d[0][16+18]-proj2d[0][13+18], 2*proj2d[1][16+18]-proj2d[1][13+18]]
+  x23 = [2*proj2d[0][16+18]-proj2d[0][14+18], 2*proj2d[1][16+18]-proj2d[1][14+18]]
+  x24 = [2*proj2d[0][17+18]-proj2d[0][9+18],  2*proj2d[1][17+18]-proj2d[1][9+18]]
+  x25 = [2*proj2d[0][17+18]-proj2d[0][10+18], 2*proj2d[1][17+18]-proj2d[1][10+18]]
+  cv2.line(image, (int(proj2d[0][15+18]),int(proj2d[1][15+18])), (int(x22[0]),int(x22[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][12+18]),int(proj2d[1][12+18])), (int(x23[0]),int(x23[1])), (255,0,0), 2)
+  cv2.line(image, (int(x22[0]),int(x22[1])),                     (int(x23[0]),int(x23[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][11+18]),int(proj2d[1][11+18])), (int(x24[0]),int(x24[1])), (255,0,0), 2)
+  cv2.line(image, (int(proj2d[0][8+18]),int(proj2d[1][8+18])),   (int(x25[0]),int(x25[1])), (255,0,0), 2)
+  cv2.line(image, (int(x24[0]),int(x24[1])),                     (int(x25[0]),int(x25[1])), (255,0,0), 2)
 
 def read_single_image(fqueue, dim):
-	reader = tf.TFRecordReader()
-	key, value = reader.read(fqueue)
-	basics = tf.parse_single_example(value, features={
-		'idx': tf.FixedLenFeature([], tf.int64),
-		'bbx': tf.FixedLenFeature([4], tf.float32),
-		'vimg': tf.FixedLenFeature([], tf.string)})
+  reader = tf.TFRecordReader()
+  key, value = reader.read(fqueue)
+  basics = tf.parse_single_example(value, features={
+    'idx': tf.FixedLenFeature([], tf.int64),
+    'bbx': tf.FixedLenFeature([4], tf.float32),
+    'vimg': tf.FixedLenFeature([], tf.string)})
 
-	image = basics['vimg']
+  image = basics['vimg']
 
-	image = tf.decode_raw(image, tf.uint8)
-	image.set_shape([3 * dim * dim])
-	image = tf.reshape(image, [dim, dim, 3])
+  image = tf.decode_raw(image, tf.uint8)
+  image.set_shape([3 * dim * dim])
+  image = tf.reshape(image, [dim, dim, 3])
 
-	idx = tf.cast(basics['idx'], tf.int64)
-	bbx = basics['bbx']
+  idx = tf.cast(basics['idx'], tf.int64)
+  bbx = basics['bbx']
 
-	return image, idx, bbx
+  return image, idx, bbx
 
 def create_bb_pip(tfr, nepoch, sbatch, mean, shuffle=True):
 
@@ -122,8 +122,8 @@ def evaluate(input_tfr, model_dir, mean, out_dir, png_list, out_list):
     
     # inference model.
     #pred_key = sk_net.infer_key(images, 36 * 2, tp=False)
-    #pred_2d, pred_3d = sk_net.infer_23d(images, 36 * 2, 36 * 3, tp=False)
-    pred_2d, pred_3d, _ = sk_net.infer_os(images, 36, tp=False)
+    pred_2d, pred_3d = sk_net.infer_23d(images, 36 * 2, 36 * 3, tp=False)
+    #pred_2d, pred_3d, _ = sk_net.infer_os(images, 36, tp=False)
 
     init_op = tf.group(tf.global_variables_initializer(),
         tf.local_variables_initializer())
@@ -258,7 +258,8 @@ def gen_tfrecords(input_dir, out_filename):
   for act_class in os.listdir(input_dir):
     act_path = osp.join(input_dir, act_class)
     for six, seq in enumerate(os.listdir(act_path)):
-      seq_path = osp.join(act_path, seq) 
+      #seq_path = osp.join(act_path, seq) 
+      seq_path = osp.join(act_path, seq, 'car') 
       for fi in os.listdir(seq_path):
         if fi.endswith('.png') or fi.endswith('.jpg'):
           filename = osp.join(seq_path, fi)
@@ -269,7 +270,7 @@ def gen_tfrecords(input_dir, out_filename):
   for ix in xrange(N):
     if ix % batch_N == 0:
       print('[%s]: %d/%d' % (datetime.datetime.now(), ix, N))
-      batch_data = [(png_list[k + ix], k + ix) \
+      batch_data = [(png_list[k + ix], k + ix)
           for k in range(min(batch_N, N - ix))]
       
       batch_datums = p.map(process_noniso_img, batch_data)
@@ -306,25 +307,25 @@ def main(FLAGS):
 
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser()
-	parser.add_argument(
-			'--out_dir',
-			type=str,
-			default='/home/chi/diva/v1-act-keys_morecrop/training',
-			help='Directory of output training and log files'
-	)
-	parser.add_argument(
-			'--model_dir',
-			type=str,
-			default='/home/chi/mv-vk/model/diva/L2_noniso_car_23d',
-			help='Directory of model files'
-	)
-	parser.add_argument(
-			'--input',
-			type=str,
-			default='/home/chi/diva/v1-act-crops/validate',
-			help='Directory of input directory'
-	)
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--out_dir',
+      type=str,
+      default='/home/chi/diva/self_eval/training',
+      help='Directory of output training and log files'
+  )
+  parser.add_argument(
+      '--model_dir',
+      type=str,
+      default='/home/chi/mv-vk/model/diva/L2_noniso_car_23d',
+      help='Directory of model files'
+  )
+  parser.add_argument(
+      '--input',
+      type=str,
+      default='/home/chi/diva/activity_crops/training',
+      help='Directory of input directory'
+  )
 
-	FLAGS, unparsed = parser.parse_known_args()
-	main(FLAGS)
+  FLAGS, unparsed = parser.parse_known_args()
+  main(FLAGS)
