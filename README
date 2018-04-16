@@ -1,0 +1,35 @@
+Deep Supervision with Shape Concepts for Occlusion-Aware 3D Object Parsing 
+
+Author: Chi Li
+Date: April 16, 2018
+Version: 1.0.0
+
+This code is the re-implementation of DISCO in tensorflow. Right now, it is still not publicly available. Please limit the usage and development within CIRL.
+
+This code was developed on TF 1.3.0, Python 2.7.6, Ubuntu 14.04. It should be compatible with higher versions of TF, python and Ubuntu.
+
+--------File Overview
+
+utils.py: some utility functions 
+tran3D.py: conversions between different representations of SO(3), such as euler angle -> rotation matrix and quaternion -> rotation matrix
+net2d.py: elementary layer functions including convolutional layer, fully connected layer and GAP layer
+single_key_net.py: higher abstraction for constructing DISCO net, which stacks the complete network. It also contains the loss function. Right now, this re-implementation does not incorporate viewpoint into the deep supervision.
+train_car_key.py: training script for end-to-end 2D keypoint regression
+train_car_23d.py: training script for 2D+3D keypoint regression
+train_car_os23d.py: training script for 2D+3D+occlusion flags
+val_single_key_from_raw.py: estimate keypoints for all rgb images in a folder. All images are transformed by iso-tropic warping, where image height and width are warped to 64.
+val_single_key_from_noniso_raw.py: estimate keypoints for all rgb images in a folder. All images are transformed by non isotropic warping, where input image preserves the original aspect ratio and padded with gray areas for redundant parts.
+
+val_single_key_for_TK.py: estimate keypoints for all rgb images arranged in DIVA file structure. All images are transformed by iso-tropic warping, where image height and width are warped to 64.
+val_single_key_noniso_for_TK.py: estimate keypoints for all rgb images in DIVA file structure. All images are transformed by non isotropic warping, where input image preserves the original aspect ratio and padded with gray areas for redundant parts.
+
+tf_noniso_car_full.py and tf_noniso_car_multi.py: two example codes that teach you how to generate the tfrecord for training script and what data structure inside each tfrecord datum
+
+--------Notes
+
+In this implementation, the main warping method we use is non-isotropic warping, which is different from the original paper. Therefore, please mainly look at val_single_from_noniso_raw.py or val_single_key_noniso_for_TK.py.
+
+The model path in validation code should be the same as the output path of training code.
+
+
+
