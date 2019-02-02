@@ -1,13 +1,3 @@
-Deep Supervision with Shape Concepts for Occlusion-Aware 3D Object Parsing 
-
-Author: Chi Li
-Date: April 16, 2018
-Version: 1.0.0
-
-This code is the re-implementation of DISCO in tensorflow. Right now, it is still not publicly available. Please limit the usage and development within CIRL.
-
-This code was developed on TF 1.3.0, Python 2.7.6, Ubuntu 14.04. It should be compatible with higher versions of TF, python and Ubuntu.
-
 --------File Overview
 
 utils.py: some utility functions 
@@ -24,6 +14,8 @@ val_single_key_for_TK.py: estimate keypoints for all rgb images arranged in DIVA
 val_single_key_noniso_for_TK.py: estimate keypoints for all rgb images in DIVA file structure. All images are transformed by non isotropic warping, where input image preserves the original aspect ratio and padded with gray areas for redundant parts.
 
 tf_noniso_car_full.py and tf_noniso_car_multi.py: two example codes that teach you how to generate the tfrecord for training script and what data structure inside each tfrecord datum
+hg_train_os23d.py: training script for hourglass occlusion mask-3d-2d model.
+hg_train_23d.py: training script for hourglass 3d-2d model.
 
 --------Notes
 
