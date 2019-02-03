@@ -28,11 +28,16 @@ from tran3D import quaternion_about_axis
 from scipy.linalg import logm
 import cv2
 
-def read_one_datum(fqueue, dim, key_num=36):
+# import net2d_hg as hg
+import hg_utils as ut
+
+def read_one_datum(fqueue, dim, key_num=36, hm_dim=64, nStack=4):
   reader = tf.TFRecordReader()
   key, value = reader.read(fqueue)
   basics = tf.parse_single_example(value, features={
+    # 'key2d': tf.FixedLenFeature([key_num * 2], tf.float32),
     'key2d': tf.FixedLenFeature([key_num * 2], tf.float32),
+
     'image': tf.FixedLenFeature([], tf.string)})
 
   image = basics['image']
@@ -40,9 +45,20 @@ def read_one_datum(fqueue, dim, key_num=36):
   image.set_shape([3 * dim * dim])
   image = tf.reshape(image, [dim, dim, 3])
 
+
+  # appy resizing and hm generation
+  image = tf.image.resize_images(image, size=[256, 256])
+
   key = basics['key2d']
 
-  return image, key 
+  key_resh = tf.reshape(key*hm_dim, shape=(key_num, 2))
+  key_resh *= hm_dim
+  key_hm = ut._tf_generate_hm(hm_dim, hm_dim, key_resh)
+  temp = [key_hm for _ in range(nStack)]
+  key_hm = tf.stack(temp, axis=0)
+  # print(key_hm.get_shape().as_list())
+
+  return image, key_hm
     
 def create_bb_pip(tfr_pool, nepoch, sbatch, mean, shuffle=True):
   if len(tfr_pool) == 3:
@@ -150,19 +166,28 @@ def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
   with tf.Graph().as_default():
     sys.stderr.write("Building Network ... \n")
     global_step = tf.contrib.framework.get_or_create_global_step()
-    
+
+
     images, gt_key = create_bb_pip(input_tfr_pool, 1000, sbatch, mean, shuffle=True)
 
+    # print(gt_key.get_shape().as_list()) # key_hm: [B, nStack, h, w, #key_points], i.e. [16, 4, 64, 64, 36]
     # inference model
-    key_dim = gt_key.get_shape().as_list()[1]
-    pred_key = sk_net.infer_key(images, key_dim, tp=True)
-    
+    #
+    # key_dim = gt_key.get_shape().as_list()[1]
+    # pred_key = sk_net.infer_key(images, key_dim, tp=True)
+
+    out_dim = gt_key.get_shape().as_list[-1]
+    pred_key_hm = hg._graph_hourglass(input=images, outDim=out_dim, tiny=False, modif=True, is_trainng=True)
+
     # Calculate loss
-    total_loss, data_loss = sk_net.L2_loss_key(pred_key, gt_key, weight_decay=wd)
-    train_op = optimizer(total_loss, global_step, lrs, steps)
+    # total_loss, data_loss = sk_net.L2_loss_key(pred_key, gt_key, weight_decay=wd)
+    # train_op, _ = optimizer(total_loss, global_step, lrs, steps)
+
+    total_loss = ut._bce_loss(logits=pred_key_hm, gtMaps=)
     sys.stderr.write("Train Graph Done ... \n")
-    add_bb_summary(images, pred_key, gt_key, 'train', max_out=3)
-    
+    # add_bb_summary(images, pred_key, gt_key, 'train', max_out=3)
+    # add_bb_summary(images, pred_key_hm, gt_key, 'train', max_out=3)
+
     if val_tfr_pool:
       val_pool = []
       val_iters = []
@@ -170,9 +195,9 @@ def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
         total_val_num = ndata_tfrecords(val_tfr)
         total_val_iters = int(float(total_val_num) / sbatch)
         val_iters.append(total_val_iters)
-        val_images, val_gt_key = create_bb_pip([val_tfr], 
+        val_images, val_gt_key = create_bb_pip([val_tfr],
             1000, sbatch, mean, shuffle=False)
-        
+
         val_pred_key = sk_net.infer_key(val_images, key_dim, tp=False, reuse_=True)
         _, val_data_loss = sk_net.L2_loss_key(val_pred_key, val_gt_key, None)
         val_pool.append(val_data_loss)
@@ -188,19 +213,19 @@ def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
     with tf.Session(config=config) as sess:
       summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
       model_saver = tf.train.Saver()
-      
+
       sys.stderr.write("Initializing ... \n")
       # initialize graph
       sess.run(init_op)
 
       # initialize the queue threads to start to shovel data
       coord = tf.train.Coordinator()
-      threads = tf.train.start_queue_runners(sess=sess, coord=coord)    
-      
+      threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
       model_prefix = os.path.join(out_dir, 'single_key')
       timer = 0
       timer_count = 0
-      
+
       sys.stderr.write("Start Training --- OUT DIM: %d\n" % (key_dim))
       for i in xrange(total_iters):
         ts = time.time()
@@ -209,7 +234,7 @@ def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
 
           summary_writer.add_summary(summary, i)
           summary_writer.flush()
-          
+
           sys.stderr.write('Training %d (%fs) --- Key L2 Loss: %f\n'
               % (i, timer / timer_count, key_loss))
           timer = 0
@@ -218,7 +243,7 @@ def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
           sess.run([train_op])
           timer += time.time() - ts
           timer_count += 1
-        
+
         if val_tfr and i > 0 and i % val_freq == 0:
           sys.stderr.write('Validation %d\n' % i)
           for cid, v_dl in enumerate(val_pool):
@@ -227,10 +252,10 @@ def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
 
         if i > 0 and i % model_save_freq == 0:
           model_saver.save(sess, model_prefix, global_step=i)
-          
+
       model_saver.save(sess, model_prefix, global_step=i)
-      
-      summary_writer.close() 
+
+      summary_writer.close()
       coord.request_stop()
       coord.join(threads, stop_grace_period_secs=5)
    
@@ -249,7 +274,7 @@ def main(FLAGS):
     fp.write('batch: %d\n' % FLAGS.batch)
     fp.write('mean: %s\n' % FLAGS.mean)
 
-  log_dir = osp.join(FLAGS.out_dir, 'log')
+  log_dir = osp.join(FLAGS.out_dir, 'L23d_pmc')
   if tf.gfile.Exists(log_dir) is False:
     tf.gfile.MakeDirs(log_dir)
   else:
@@ -273,13 +298,13 @@ if __name__ == '__main__':
   parser.add_argument(
       '--out_dir',
       type=str,
-      default='log',
-      help='Directory of output training and log files'
+      default='L23d_pmc',
+      help='Directory of output training and L23d_pmc files'
   )
   parser.add_argument(
       '--input',
       type=str,
-      default='/home/chi/syn_dataset/tfrecord/car/v0',
+      default='/home/tliao4/chi/tfrecord/car/v1',
       help='Directory of input directory'
   )
   parser.add_argument(
@@ -297,7 +322,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--batch', 
       type=int, 
-      default=100, 
+      default=16,
       help='batch size.'
   )
   parser.add_argument('--debug', action='store_true', help='debug mode')

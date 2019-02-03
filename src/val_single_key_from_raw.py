@@ -249,7 +249,7 @@ def gen_tfrecords(input_dir, out_filename):
   
 def main(FLAGS):
 	assert tf.gfile.Exists(FLAGS.input)
-	model_dir = osp.join(FLAGS.model_dir, 'log', 'model')
+	model_dir = osp.join(FLAGS.model_dir, 'L23d_pmc', 'model')
 	assert tf.gfile.Exists(FLAGS.model_dir)
 	
 	mean = [128, 128, 128] 
@@ -269,7 +269,7 @@ if __name__ == '__main__':
 			'--out_dir',
 			type=str,
 			default='diva_samples',
-			help='Directory of output training and log files'
+			help='Directory of output training and L23d_pmc files'
 	)
 	parser.add_argument(
 			'--model_dir',

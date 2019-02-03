@@ -139,11 +139,11 @@ def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
   """Train Multi-View Network for a number of steps."""
   log_freq = 100
   val_freq = 1000
-  model_save_freq = 3000
+  model_save_freq = 10000
   tf.logging.set_verbosity(tf.logging.ERROR)
 
   # maximum epochs
-  total_iters = 200000 
+  total_iters = 140001
   lrs = [0.01, 0.001, 0.0001]
   steps = [int(total_iters * 0.5), int(total_iters * 0.4), int(total_iters * 0.1)]
    
@@ -162,7 +162,7 @@ def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
     
     # Calculate loss
     total_loss, data_loss = sk_net.L2_loss_os(pred_key, [gt_2d, gt_3d, gt_occ], weight_decay=wd)
-    train_op = optimizer(total_loss, global_step, lrs, steps)
+    train_op, _ = optimizer(total_loss, global_step, lrs, steps)
     sys.stderr.write("Train Graph Done ... \n")
     #add_bb_summary(images, pred_key[0], gt_2d, 'train', max_out=3)
     
@@ -190,7 +190,7 @@ def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
 
     with tf.Session(config=config) as sess:
       summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
-      model_saver = tf.train.Saver()
+      model_saver = tf.train.Saver(max_to_keep=15)
       
       sys.stderr.write("Initializing ... \n")
       # initialize graph
@@ -252,7 +252,7 @@ def main(FLAGS):
     fp.write('batch: %d\n' % FLAGS.batch)
     fp.write('mean: %s\n' % FLAGS.mean)
 
-  log_dir = osp.join(FLAGS.out_dir, 'log')
+  log_dir = osp.join(FLAGS.out_dir, 'L23d_pmc')
   if tf.gfile.Exists(log_dir) is False:
     tf.gfile.MakeDirs(log_dir)
   else:
@@ -263,9 +263,14 @@ def main(FLAGS):
   if tf.gfile.Exists(model_dir) is False:
     tf.gfile.MakeDirs(model_dir)
 
-  train_files = ['syn_car_full_train_d64.tfrecord', 'syn_car_morecrop_train_d64.tfrecord', 'syn_car_multi_train_d64.tfrecord'] 
-  val_files = ['syn_car_full_val_d64.tfrecord', 'syn_car_morecrop_val_d64.tfrecord', 'syn_car_multi_val_d64.tfrecord'] 
-  train_files = [osp.join(FLAGS.input, tt) for tt in train_files] 
+  # train_files = ['syn_car_full_train_d64.tfrecord', 'syn_car_morecrop_train_d64.tfrecord', 'syn_car_multi_train_d64.tfrecord']
+  # val_files = ['syn_car_full_val_d64.tfrecord', 'syn_car_morecrop_val_d64.tfrecord', 'syn_car_multi_val_d64.tfrecord']
+  #
+  train_files = ['syn_car_full_train_d64.tfrecord', 'syn_car_crop_train_d64.tfrecord',
+                 'syn_car_multi_train_d64.tfrecord']
+  val_files = ['syn_car_full_val_d64.tfrecord', 'syn_car_crop_val_d64.tfrecord', 'syn_car_multi_val_d64.tfrecord']
+
+  train_files = [osp.join(FLAGS.input, tt) for tt in train_files]
   val_files = [osp.join(FLAGS.input, tt) for tt in val_files] 
 
   train(train_files, val_files, model_dir, log_dir, mean, FLAGS.batch, FLAGS.wd)
@@ -276,13 +281,13 @@ if __name__ == '__main__':
   parser.add_argument(
       '--out_dir',
       type=str,
-      default='log',
-      help='Directory of output training and log files'
+      default='L2_os23d_crop_1-20-19',
+      help='Directory of output training and L23d_crop files'
   )
   parser.add_argument(
       '--input',
       type=str,
-      default='/home/chi/syn_dataset/tfrecord/car/v1',
+      default='/home/tliao4/tliao4/def_car/rigid_car_data/v1',
       help='Directory of input directory'
   )
   parser.add_argument(
@@ -294,7 +299,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--wd', 
       type=float, 
-      default=0, 
+      default=0.0001,
       help='Weight decay of the variables in network.'
   )
   parser.add_argument(

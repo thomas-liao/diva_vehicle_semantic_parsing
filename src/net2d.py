@@ -32,9 +32,9 @@ def var_summaries(var, name):
     tf.summary.scalar('max', tf.reduce_max(var))
     tf.summary.histogram('histogram', var)
 
-def _var_init(name, shape, init_method):
+def _var_init(name, shape, init_method, is_trainable=False): #@
   # return float32 variable initialized with init_method
-  return tf.get_variable(name, shape, initializer=init_method, dtype=tf.float32)
+  return tf.get_variable(name, shape, initializer=init_method, dtype=tf.float32, trainable=is_trainable)
 
 def deconv(name, input_, size, out_num, stride, is_training):
   vec = input_.get_shape().as_list()  

@@ -61,7 +61,7 @@ def noniso_warp(img, key2d, dim, method=cv2.INTER_CUBIC):
     pad_w = dim
     pad_h_up = int((dim - new_h) / 2)
     pad_h_down = dim - new_h - pad_h_up
-    new_k2d[:, 1] += pad_h_down
+    new_k2d[:, 1] += pad_h_down # again, i think it is a bug..  pad_h_up
 
     if len(img.shape) == 3:
       pad_up = np.ones((pad_h_up, pad_w, 3), dtype=itype) * 128
@@ -110,7 +110,9 @@ def combine2datum(tuple_):
 
 	ori_height = bbx[3] - bbx[1] + 1
 	ori_width = bbx[2] - bbx[0] + 1
-	
+
+
+	# TL - add / del / modified data pipeline - 5 data augmentation methods
 	if method == 0:
 		left = bbx[0]
 		bottom = bbx[1]

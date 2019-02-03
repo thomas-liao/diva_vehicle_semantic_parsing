@@ -130,15 +130,17 @@ def key23d_64(image, k2d_dim, k3d_dim, reuse_flag, tp):
   
   prefix = 'conv'
   with tf.variable_scope('Base_CNN', reuse=reuse_flag):
-    inet = net2d.stack_modern_conv(prefix, 1, 5, image, 3, 64, 
+    inet = net2d.stack_modern_conv(prefix, 1, 5, image, 3, 64,      # int image: shape=(100, 64, 64, 3), out shape=(100, 64, 64, 64)
         is_training=tp, dropout=0.7, down_first=False)
-    inet = net2d.stack_modern_conv(prefix, 5, 10, inet, 3, 128, 
+    inet = net2d.stack_modern_conv(prefix, 5, 10, inet, 3, 128,     # out shape=(100, 32, 32, 128)
         is_training=tp, dropout=0.7, down_first=True)
-    inet = net2d.stack_modern_conv(prefix, 10, 15, inet, 3, 256, 
+
+    inet = net2d.stack_modern_conv(prefix, 10, 15, inet, 3, 256,    # out shape=(100, 16, 16, 256)
         is_training=tp, dropout=0.7, down_first=True)
-    inet = net2d.stack_modern_conv(prefix, 15, 20, inet, 3, 512, 
+    inet = net2d.stack_modern_conv(prefix, 15, 20, inet, 3, 512,    # out shape=(100, 8, 8, 512)
         is_training=tp, dropout=0.7, down_first=True)
-    
+
+    # check
     out_3d = net2d.GAP('vGAP', inet)
     pred3d = net2d.FC('3d', out_3d, k3d_dim) 
     
@@ -150,9 +152,63 @@ def key23d_64(image, k2d_dim, k3d_dim, reuse_flag, tp):
     
     return pred2d, pred3d
 
+# this is used for breaking the key23d_64 network to get the inet after 3d out..
+def prep_sHG_3d_encode_info(image, k2d_dim, k3d_dim, reuse_flag, tp):
+    prefix = 'conv'
+    with tf.variable_scope('Base_CNN', reuse=reuse_flag):
+        inet = net2d.stack_modern_conv(prefix, 1, 5, image, 3, 64,
+                                       # int image: shape=(100, 64, 64, 3), out shape=(100, 64, 64, 64)
+                                       is_training=tp, dropout=0.7, down_first=False)
+        inet = net2d.stack_modern_conv(prefix, 5, 10, inet, 3, 128,  # out shape=(100, 32, 32, 128)
+                                       is_training=tp, dropout=0.7, down_first=True)
+
+        inet = net2d.stack_modern_conv(prefix, 10, 15, inet, 3, 256,  # out shape=(100, 16, 16, 256)
+                                       is_training=tp, dropout=0.7, down_first=True)
+        # inet = net2d.stack_modern_conv(prefix, 15, 20, inet, 3, 512,  # out shape=(100, 8, 8, 512)
+        #                                is_training=tp, dropout=0.7, down_first=True)
+
+        # check
+
+        return inet
+
+
+def prep_sHG_3d_encode_info_v2(image, k3d_dim, reuse_flag, tp):
+    prefix = 'conv'
+    with tf.variable_scope('Base_CNN', reuse=reuse_flag):
+        inet = net2d.stack_modern_conv(prefix, 1, 5, image, 3, 64,
+                                       # int image: shape=(100, 64, 64, 3), out shape=(100, 64, 64, 64)
+                                       is_training=tp, dropout=0.7, down_first=False)
+        inet = net2d.stack_modern_conv(prefix, 5, 10, inet, 3, 128,  # out shape=(100, 32, 32, 128)
+                                       is_training=tp, dropout=0.7, down_first=True)
+
+        inet = net2d.stack_modern_conv(prefix, 10, 15, inet, 3, 256,  # out shape=(100, 16, 16, 256) # good enough for hourglass input.. i guess
+                                       is_training=tp, dropout=0.7, down_first=True)
+
+        hg_input = inet
+        inet2 = net2d.stack_modern_conv(prefix, 15, 20, inet, 3, 512,  # out shape=(100, 8, 8, 512)
+                                       is_training=tp, dropout=0.7, down_first=True)
+
+        # check
+
+
+        out_3d = net2d.GAP('vGAP', inet2)
+        pred3d = net2d.FC('3d', out_3d, k3d_dim)
+        return hg_input, pred3d
+
+
+def modified_hg_preprocessing_with_3d_info(images, k2d_dim, k3d_dim, tp=False, reuse_=True):
+  with tf.variable_scope('Single_VNN', reuse=reuse_):
+    return prep_sHG_3d_encode_info(images, k2d_dim, k3d_dim, reuse_, tp)
+
+def modified_hg_preprocessing_with_3d_info_v2(images, k3d_dim, tp=False, reuse_=True):
+  with tf.variable_scope('Single_VNN', reuse=reuse_):
+    return prep_sHG_3d_encode_info_v2(images, k3d_dim, reuse_, tp)
+
+
 def infer_23d(images, k2d_dim, k3d_dim, tp, reuse_=False):
   with tf.variable_scope('Single_VNN', reuse=reuse_):
     return key23d_64(images, k2d_dim, k3d_dim, reuse_, tp)
+
 
 def L2_loss_23d(pred_key, gt_key, weight_decay):
   loss_group = 'losses'
@@ -211,12 +267,55 @@ def infer_os(images, key_dim, tp, reuse_=False):
   with tf.variable_scope('Single_VNN', reuse=reuse_):
     return keyos_64(images, key_dim, reuse_, tp)
 
+### os23d modification for hg use
+# modified on top of infer_os
+def infer_os_for_hg(images, key_dim, tp, reuse_=False):
+  with tf.variable_scope('Single_VNN', reuse=reuse_):
+    return keyos_64_for_hg(images, key_dim, reuse_, tp)
+
+
+def keyos_64_for_hg(image, key_dim, reuse_flag, tp):
+    prefix = 'conv'
+    with tf.variable_scope('Base_CNN', reuse=reuse_flag):
+        inet = net2d.stack_modern_conv(prefix, 1, 5, image, 3, 64,
+                                       is_training=tp, dropout=0.7, down_first=False)
+        inet = net2d.stack_modern_conv(prefix, 5, 10, inet, 3, 128,
+                                       is_training=tp, dropout=0.7, down_first=True) # [h, w, c] = [64, 64, 64]
+        inet = net2d.stack_modern_conv(prefix, 10, 15, inet, 3, 256,
+                                       is_training=tp, dropout=0.7, down_first=True) # [16, 16, 256]
+
+
+        inet = net2d.stack_modern_conv(prefix, 15, 18, inet, 3, 512,
+                                       is_training=tp, dropout=0.7, down_first=True) # [8, 8, 512]
+        inet1 = tf.image.resize_nearest_neighbor(inet, size=[64, 64]) # 64, 64, 512
+        out_os = net2d.GAP('osGAP', inet)
+        pred_os = net2d.FC('os', out_os, key_dim)
+
+
+        inet = net2d.stack_modern_conv(prefix, 18, 21, inet, 3, 512,
+                                       is_training=tp, dropout=0.7, down_first=True) # [4, 4, 512]
+        inet2 = tf.image.resize_nearest_neighbor(inet, size=[64, 64])
+
+        out_3d = net2d.GAP('3dGAP', inet)
+        pred3d = net2d.FC('3d', out_3d, key_dim * 3)
+
+        inet = net2d.stack_modern_conv(prefix, 21, 25, inet, 3, 512,
+                                       is_training=tp, dropout=0.7, down_first=False) # [4, 4, 512]
+        inet3 = tf.image.resize_nearest_neighbor(inet, size=[64, 64])
+
+        out_2d = net2d.GAP('2dGAP', inet)
+        pred2d = net2d.FC('2d', out_2d, key_dim * 2)
+        return pred2d, pred3d, pred_os, tf.add_n([inet1, inet2, inet3])
+
+
+### end of os23d modification for hg use
+
 def L2_loss_os(pred_key, gt_key, weight_decay):
   loss_group = 'losses'
   n = pred_key[0].get_shape().as_list()[0]
   assert n == gt_key[0].get_shape().as_list()[0], "prediction number == gt number"
 
-  key2d_loss = tf.nn.l2_loss(pred_key[0] - gt_key[0]) / n
+  key2d_loss = tf.nn.l2_loss(pred_key[0] - gt_key[0]) / n #@ modified
   tf.add_to_collection(loss_group, key2d_loss)
   tf.summary.scalar('key2d_loss', key2d_loss)
   key3d_loss = tf.nn.l2_loss(pred_key[1] - gt_key[1]) / n
@@ -234,7 +333,9 @@ def L2_loss_os(pred_key, gt_key, weight_decay):
       tf.add_to_collection(loss_group, wd_reg)
 
   total_loss = tf.add_n(tf.get_collection(loss_group), name='total_loss')
+  # return total_loss, key2d_loss, key3d_loss, os_loss #@
   return total_loss, key2d_loss
+
 
 
 def base_64_key_vnn(image, depth, key_dim, reuse_flag, tp):

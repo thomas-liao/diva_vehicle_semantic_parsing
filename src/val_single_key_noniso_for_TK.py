@@ -1,4 +1,4 @@
-# Python
+#!/usr/bin/env python
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -30,6 +30,7 @@ def compute_xy_one_angle(one_bin, one_delta):
   return (pivot + 0.5) * bin_size + one_delta[pivot] - 1.0
 
 def show2dLandmarks(image, proj2d):
+  # print(proj2d.shape) # (2, 36)....
   for idx in range(18):
     cv2.circle(image, (int(proj2d[0][idx]), int(proj2d[1][idx])), 4, (0,0,255), -1)
 
@@ -103,7 +104,7 @@ def create_bb_pip(tfr, nepoch, sbatch, mean, shuffle=True):
   data[0] = preprocess(data[0], tf_mean)
   return data 
 
-def evaluate(input_tfr, model_dir, mean, out_dir, png_list, out_list):
+def evaluate(input_tfr, model_dir, mean, in_dir, out_dir, png_list):
   """Evaluate Multi-View Network for a epoch."""
   tf.logging.set_verbosity(tf.logging.FATAL)
 
@@ -121,7 +122,7 @@ def evaluate(input_tfr, model_dir, mean, out_dir, png_list, out_list):
     images, idx, bbxs = create_bb_pip(input_tfr, 10, sbatch, mean, shuffle=False)
     
     # inference model.
-    #pred_key = sk_net.infer_key(images, 36 * 2, tp=False)
+    # pred_key = sk_net.infer_key(images, 36 * 2, tp=False)
     pred_2d, pred_3d = sk_net.infer_23d(images, 36 * 2, 36 * 3, tp=False)
     #pred_2d, pred_3d, _ = sk_net.infer_os(images, 36, tp=False)
 
@@ -154,36 +155,47 @@ def evaluate(input_tfr, model_dir, mean, out_dir, png_list, out_list):
       sys.stderr.write("Start Testing\n")
       count = 0
       for i in xrange(niters):
-        print('Parsing %d / %d' % (i, niters))
+        print('[%s]: Parsing batch %d/%d...' % (datetime.datetime.now(), i + 1, niters))
         img_idx_pool, key2d, key3d, bbx_pool = sess.run([idx, pred_2d, pred_3d, bbxs])
+        print("Check", key2d.shape)
         if i == niters - 1:
           img_idx_pool = img_idx_pool[:diff_on_last] 
           key2d = key2d[:diff_on_last] 
           key3d = key3d[:diff_on_last] 
 
         for img_idx, k2d, k3d, bb in zip(img_idx_pool, key2d, key3d, bbx_pool):
-          img = cv2.imread(png_list[img_idx], cv2.IMREAD_COLOR)
-          cur_out_path = osp.join(out_dir, out_list[img_idx])
+          img_path = png_list[img_idx]
+          img = cv2.imread(img_path, cv2.IMREAD_COLOR)
+          cur_out_path = img_path.replace(in_dir, out_dir)
+          if cur_out_path.endswith('.png'): 
+            cur_out_path = cur_out_path.replace('.png', '')
+          elif cur_out_path.endswith('.jpg'): 
+            cur_out_path = cur_out_path.replace('.jpg', '')
           
           k2d_tmp = np.reshape(k2d, (36, 2))
           k2d_tmp *= 64
-          k2d_tmp[:, 0] = (k2d_tmp[:, 0] - bb[0]) / (bb[2] - bb[0]) 
+          k2d_tmp[:, 0] = (k2d_tmp[:, 0] - bb[0]) / (bb[2] - bb[0])
           k2d_tmp[:, 1] = (k2d_tmp[:, 1] - bb[1]) / (bb[3] - bb[1]) 
           k2d = k2d_tmp.flatten()
           
-          cur_flen = len(cur_out_path.split('/')[-1])
-          if osp.exists(cur_out_path[:-cur_flen]) is False:
-            os.makedirs(cur_out_path[:-cur_flen])
+          # cur_flen = len(cur_out_path.split('/')[-1])
+          # if osp.exists(cur_out_path[:-cur_flen]) is False:
+          #   os.makedirs(cur_out_path[:-cur_flen])
+          cur_dir = os.path.dirname(cur_out_path)
+          if not os.path.exists(cur_dir):
+            os.makedirs(cur_dir)
           
           np.savetxt(cur_out_path + '_2d.txt', k2d)
           np.savetxt(cur_out_path + '_3d.txt', k3d)
 
           proj2d = np.transpose(np.reshape(k2d, (36, 2)))
+
           proj2d[0] *= img.shape[1]
           proj2d[1] *= img.shape[0]
+          # print('img shape check', img.shape)
           show2dLandmarks(img, proj2d)
           
-          cv2.imwrite(osp.join(cur_out_path + '_2d.jpg'), img)
+          cv2.imwrite(cur_out_path + '_2d.jpg', img)
           count += 1
 
       coord.request_stop()
@@ -255,21 +267,16 @@ def gen_tfrecords(input_dir, out_filename):
   writer = tf.python_io.TFRecordWriter(out_filename)
   png_list = []
   out_list = []
-  for act_class in os.listdir(input_dir):
-    act_path = osp.join(input_dir, act_class)
-    for six, seq in enumerate(os.listdir(act_path)):
-      #seq_path = osp.join(act_path, seq) 
-      seq_path = osp.join(act_path, seq, 'car') 
-      for fi in os.listdir(seq_path):
-        if fi.endswith('.png') or fi.endswith('.jpg'):
-          filename = osp.join(seq_path, fi)
-          png_list.append(filename)
-          out_list.append(osp.join(act_class, seq, fi[:-4])) 
+  for root, dirs, files in os.walk(input_dir):
+    for filename in files:
+      if filename.endswith('.png') or filename.endswith('.jpg'):
+        img_path = os.path.join(root, filename)
+        png_list.append(img_path)
 
   N = len(png_list)
   for ix in xrange(N):
     if ix % batch_N == 0:
-      print('[%s]: %d/%d' % (datetime.datetime.now(), ix, N))
+      print('[%s]: Generating tfrecord %d/%d...' % (datetime.datetime.now(), ix + 1, N))
       batch_data = [(png_list[k + ix], k + ix)
           for k in range(min(batch_N, N - ix))]
       
@@ -287,45 +294,49 @@ def gen_tfrecords(input_dir, out_filename):
     example = tf.train.Example(features=tf.train.Features(feature=cur_feature))
     writer.write(example.SerializeToString())
 
-  writer.close()    
-  return png_list, out_list
+  writer.close()
+  return png_list
   
 def main(FLAGS):
-  assert tf.gfile.Exists(FLAGS.input)
-  model_dir = osp.join(FLAGS.model_dir, 'log', 'model')
+  assert tf.gfile.Exists(FLAGS.in_dir)
+  model_dir = osp.join(FLAGS.model_dir, 'L23d_pmc', 'model')
   assert tf.gfile.Exists(FLAGS.model_dir)
 
   mean = [128, 128, 128] 
 
   out_filename = '/tmp/val_raw.tfrecords'
-  png_list, out_list = gen_tfrecords(FLAGS.input, out_filename)
+  png_list= gen_tfrecords(FLAGS.in_dir, out_filename)
 
   if tf.gfile.Exists(FLAGS.out_dir) is False:
     tf.gfile.MakeDirs(FLAGS.out_dir)
 
-  evaluate(out_filename, model_dir, mean, FLAGS.out_dir, png_list, out_list)
-
+#  import ipdb; ipdb.set_trace(context=21)
+  evaluate(out_filename, model_dir, mean, FLAGS.in_dir, FLAGS.out_dir, png_list)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument(
-      '--out_dir',
-      type=str,
-      default='/home/chi/diva/self_eval/training',
-      help='Directory of output training and log files'
-  )
-  parser.add_argument(
       '--model_dir',
       type=str,
-      default='/home/chi/mv-vk/model/diva/L2_noniso_car_23d',
-      help='Directory of model files'
+      # default='/media/tliao4/671073B1329C337D/all_models/model/diva/L2_plain2d',
+      default='/media/tliao4/671073B1329C337D/all_models/model/diva/L2_noniso_car_23d',
+      help='Directory of output training and L23d_pmc files'
   )
   parser.add_argument(
-      '--input',
+      '--in_dir',
       type=str,
-      default='/home/chi/diva/activity_crops/training',
+      # default='/home/tliao4/Desktop/tf_car_keypoint_from_8GPU/demo/train_car_full_mini',
+      # default='/home/tliao4/Desktop/test_car_multi_mini',
+      default='/media/tliao4/671073B1329C337D/activity_crop/validate/vehicle_turning_left/VIRAT_S_000007.mp4_61/car',
+      # default='/home/tliao4/Desktop/one_test',
       help='Directory of input directory'
   )
-
+  parser.add_argument(
+      '--out_dir',
+      type=str,
+      default='/home/tliao4/Desktop/chi_left',
+      help='Directory of output files'
+  )
   FLAGS, unparsed = parser.parse_known_args()
   main(FLAGS)
+

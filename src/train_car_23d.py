@@ -122,7 +122,6 @@ def add_bb_summary(images, pred_keys, gt_keys, name_prefix, max_out=1):
     pred = tf.gather(pred_keys, i)
     gt = tf.gather(gt_keys, i)
     image = tf.gather(images, i)
-    
     result = tf.py_func(vis2d_one_output, [image, pred, gt], tf.uint8)
 
     tf.summary.image(name_prefix + '_result_' + str(i), result, 1)
@@ -138,12 +137,12 @@ def eval_one_epoch(sess, val_loss, niters):
 def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
   """Train Multi-View Network for a number of steps."""
   log_freq = 100
-  val_freq = 1000
-  model_save_freq = 3000
+  val_freq = 2000
+  model_save_freq = 10000
   tf.logging.set_verbosity(tf.logging.ERROR)
 
   # maximum epochs
-  total_iters = 200000 
+  total_iters = 150000
   lrs = [0.01, 0.001, 0.0001]
   steps = [int(total_iters * 0.5), int(total_iters * 0.4), int(total_iters * 0.1)]
    
@@ -190,7 +189,7 @@ def train(input_tfr_pool, val_tfr_pool, out_dir, log_dir, mean, sbatch, wd):
 
     with tf.Session(config=config) as sess:
       summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
-      model_saver = tf.train.Saver()
+      model_saver = tf.train.Saver(max_to_keep=15)
       
       sys.stderr.write("Initializing ... \n")
       # initialize graph
@@ -261,7 +260,7 @@ def main(FLAGS):
     fp.write('batch: %d\n' % FLAGS.batch)
     fp.write('mean: %s\n' % FLAGS.mean)
 
-  log_dir = osp.join(FLAGS.out_dir, 'log')
+  log_dir = osp.join(FLAGS.out_dir, 'L23d_pmc')
   if tf.gfile.Exists(log_dir) is False:
     tf.gfile.MakeDirs(log_dir)
   else:
@@ -285,13 +284,13 @@ if __name__ == '__main__':
   parser.add_argument(
       '--out_dir',
       type=str,
-      default='log',
-      help='Directory of output training and log files'
+      default='L23d_pmc',
+      help='Directory of output training and L23d_pmc files'
   )
   parser.add_argument(
       '--input',
       type=str,
-      default='/home/chi/syn_dataset/tfrecord/car/v1',
+      default='/home/tliao4/tliao4/def_car/rigid_car_data/v1',
       help='Directory of input directory'
   )
   parser.add_argument(
@@ -303,7 +302,7 @@ if __name__ == '__main__':
   parser.add_argument(
       '--wd', 
       type=float, 
-      default=0, 
+      default=0.0001,
       help='Weight decay of the variables in network.'
   )
   parser.add_argument(

@@ -270,14 +270,14 @@ def gen_tfrecords(input_dir, out_filename):
   return png_list, out_list
   
 def main(FLAGS):
-	assert tf.gfile.Exists(FLAGS.input)
+	assert tf.gfile.Exists(FLAGS.in_dir)
 	model_dir = osp.join(FLAGS.model_dir, 'model')
 	assert tf.gfile.Exists(FLAGS.model_dir)
 	
 	mean = [128, 128, 128] 
 
 	out_filename = '/tmp/val_raw.tfrecords'
-	png_list, out_list = gen_tfrecords(FLAGS.input, out_filename)
+	png_list, out_list = gen_tfrecords(FLAGS.in_dir, out_filename)
 
 	if tf.gfile.Exists(FLAGS.out_dir) == False:
 		tf.gfile.MakeDirs(FLAGS.out_dir)
@@ -286,26 +286,26 @@ def main(FLAGS):
 
 
 if __name__ == '__main__':
-	parser = argparse.ArgumentParser()
-	parser.add_argument(
-			'--out_dir',
-			type=str,
-			default='/media/jin/Black2/diva/v1-act-keys/validation',
-			help='Directory of output training and log files'
-	)
-	parser.add_argument(
-			'--model_dir',
-			type=str,
-			default='/media/jin/Black2/diva/L2_23d',
-			help='Directory of model files'
-	)
-	parser.add_argument(
-			'--input',
-			type=str,
-			default='/media/jin/Black2/diva/v1-act-crops/validate',
-			help='Directory of input directory'
-	)
+  parser = argparse.ArgumentParser()
+  parser.add_argument(
+      '--model_dir',
+      type=str,
+      default='/home/tliao4/Desktop/new_tf_car_keypoint_from_8GPU/tf_car_keypoint/models/L2_noniso_car_23d',
+      help='Directory of output training and L23d_pmc files'
+  )
+  parser.add_argument(
+      '--in_dir',
+      type=str,
+      default='/home/tliao4/Desktop/new_tf_car_keypoint_from_8GPU/tf_car_keypoint/demo/input',
+      help='Directory of input directory'
+  )
+  parser.add_argument(
+      '--out_dir',
+      type=str,
+      default='/home/tliao4/Desktop/new_tf_car_keypoint_from_8GPU/tf_car_keypoint/demo/output_single_key',
+      help='Directory of output files'
+  )
+  FLAGS, unparsed = parser.parse_known_args()
+  main(FLAGS)
 
-	FLAGS, unparsed = parser.parse_known_args()
-	main(FLAGS)
 
