@@ -7,6 +7,8 @@ single_key_net.py: higher abstraction for constructing DISCO net, which stacks t
 train_car_key.py: training script for end-to-end 2D keypoint regression
 train_car_23d.py: training script for 2D+3D keypoint regression
 train_car_os23d.py: training script for 2D+3D+occlusion flags
+hg_23d.py: training script for hg_23d modification on neural network(network structure shown in presentation. Also can be found in code.
+hg_os23d.py: training script for hg_os23d modification on neural network(network structure shown in presentation. Also can be found in code.
 val_single_key_from_raw.py: estimate keypoints for all rgb images in a folder. All images are transformed by iso-tropic warping, where image height and width are warped to 64.
 val_single_key_from_noniso_raw.py: estimate keypoints for all rgb images in a folder. All images are transformed by non isotropic warping, where input image preserves the original aspect ratio and padded with gray areas for redundant parts.
 
